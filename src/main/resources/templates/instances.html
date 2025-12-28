@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实例管理 - OpenStack管理平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .sidebar .nav-link {
+            color: #fff;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #495057;
+        }
+        .sidebar .nav-link.active {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <nav class="col-md-2 d-none d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <h4 class="text-white text-center mb-4">
+                        <i class="fas fa-cloud"></i> OpenStack
+                    </h4>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/}">
+                                <i class="fas fa-home"></i> 概览
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" th:href="@{/instances}">
+                                <i class="fas fa-server"></i> 实例管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/storage}">
+                                <i class="fas fa-database"></i> 存储管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/logout}">
+                                <i class="fas fa-sign-out-alt"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 主内容区 -->
+            <main class="col-md-10 ms-sm-auto px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">实例管理</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <span class="text-muted me-3" th:text="'用户: ' + ${username}">用户: admin</span>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createInstanceModal">
+                            <i class="fas fa-plus"></i> 创建实例
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 错误提示 -->
+                <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                <!-- 实例列表 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5>实例列表</h5>
+                    </div>
+                    <div class="card-body">
+                        <table id="instancesTable" class="table table-striped table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>状态</th>
+                                    <th>镜像</th>
+                                    <th>规格</th>
+                                    <th>IP地址</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="server : ${servers}">
+                                    <td th:text="${server.name}"></td>
+                                    <td>
+                                        <span class="badge" 
+                                              th:classappend="${server.status == 'ACTIVE'} ? 'bg-success' : 
+                                                             (${server.status == 'SHUTOFF'} ? 'bg-secondary' : 'bg-warning')"
+                                              th:text="${server.status}"></span>
+                                    </td>
+                                    <td th:text="${server.imageId}"></td>
+                                    <td th:text="${server.flavorId}"></td>
+                                    <td>
+                                        <span th:if="${server.addresses != null && !server.addresses.addresses.isEmpty()}" 
+                                              th:each="network : ${server.addresses.addresses}">
+                                            <span th:each="addr : ${network.value}" 
+                                                  th:text="${addr.addr} + ' '"></span>
+                                        </span>
+                                        <span th:if="${server.addresses == null || server.addresses.addresses.isEmpty()}">-</span>
+                                    </td>
+                                    <td th:text="${#dates.format(server.created, 'yyyy-MM-dd HH:mm:ss')}"></td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" 
+                                                th:data-server-id="${server.id}"
+                                                onclick="showDetail(this.getAttribute('data-server-id'))">
+                                            <i class="fas fa-info-circle"></i> 详情
+                                        </button>
+                                        <button class="btn btn-sm btn-success" 
+                                                th:if="${server.status == 'SHUTOFF'}"
+                                                th:data-server-id="${server.id}"
+                                                onclick="startInstance(this.getAttribute('data-server-id'))">
+                                            <i class="fas fa-play"></i> 启动
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" 
+                                                th:if="${server.status == 'ACTIVE'}"
+                                                th:data-server-id="${server.id}"
+                                                onclick="stopInstance(this.getAttribute('data-server-id'))">
+                                            <i class="fas fa-stop"></i> 停止
+                                        </button>
+                                        <button class="btn btn-sm btn-primary" 
+                                                th:data-server-id="${server.id}"
+                                                onclick="rebootInstance(this.getAttribute('data-server-id'))">
+                                            <i class="fas fa-redo"></i> 重启
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                th:data-server-id="${server.id}"
+                                                onclick="deleteInstance(this.getAttribute('data-server-id'))">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 创建实例模态框 -->
+    <div class="modal fade" id="createInstanceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建实例</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createInstanceForm">
+                        <div class="mb-3">
+                            <label class="form-label">实例名称</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">镜像</label>
+                            <select class="form-select" name="imageId" required>
+                                <option value="">请选择镜像</option>
+                                <option th:each="image : ${images}" 
+                                        th:value="${image.id}" 
+                                        th:text="${image.name}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">规格</label>
+                            <select class="form-select" name="flavorId" required>
+                                <option value="">请选择规格</option>
+                                <option th:each="flavor : ${flavors}" 
+                                        th:value="${flavor.id}" 
+                                        th:text="${flavor.name + ' (vCPU: ' + flavor.vcpus + ', RAM: ' + flavor.ram + 'MB)'}"></option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">网络</label>
+                            <select class="form-select" name="networkId" required>
+                                <option value="">请选择网络</option>
+                                <option th:each="network : ${networks}" 
+                                        th:value="${network.id}" 
+                                        th:text="${network.name}"></option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="createInstance()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 实例详情模态框 -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">实例详情</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="detailContent">
+                    <!-- 详情内容将通过AJAX加载 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#instancesTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/zh-CN.json'
+                }
+            });
+        });
+
+        function createInstance() {
+            const formData = $('#createInstanceForm').serialize();
+            $.ajax({
+                url: '/instances/create',
+                method: 'POST',
+                data: formData,
+                success: function(response) {
+                    if (response.success) {
+                        alert('实例创建成功');
+                        location.reload();
+                    } else {
+                        alert('创建失败: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('创建失败，请检查网络连接');
+                }
+            });
+        }
+
+        function deleteInstance(serverId) {
+            if (!confirm('确定要删除这个实例吗？')) return;
+            $.ajax({
+                url: '/instances/' + serverId,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        alert('删除成功');
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function startInstance(serverId) {
+            $.ajax({
+                url: '/instances/' + serverId + '/start',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        alert('启动成功');
+                        location.reload();
+                    } else {
+                        alert('启动失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function stopInstance(serverId) {
+            if (!confirm('确定要停止这个实例吗？')) return;
+            $.ajax({
+                url: '/instances/' + serverId + '/stop',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        alert('停止成功');
+                        location.reload();
+                    } else {
+                        alert('停止失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function rebootInstance(serverId) {
+            if (!confirm('确定要重启这个实例吗？')) return;
+            $.ajax({
+                url: '/instances/' + serverId + '/reboot?type=SOFT',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        alert('重启成功');
+                        location.reload();
+                    } else {
+                        alert('重启失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function showDetail(serverId) {
+            $.ajax({
+                url: '/instances/' + serverId + '/detail',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const server = response.data;
+                        let html = '<table class="table table-bordered">';
+                        html += '<tr><th>ID</th><td>' + server.id + '</td></tr>';
+                        html += '<tr><th>名称</th><td>' + server.name + '</td></tr>';
+                        html += '<tr><th>状态</th><td>' + server.status + '</td></tr>';
+                        html += '<tr><th>镜像ID</th><td>' + server.imageId + '</td></tr>';
+                        html += '<tr><th>规格ID</th><td>' + server.flavorId + '</td></tr>';
+                        html += '</table>';
+                        $('#detailContent').html(html);
+                        $('#detailModal').modal('show');
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+
+

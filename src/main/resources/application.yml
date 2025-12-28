@@ -1,0 +1,41 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: openstack-management
+  thymeleaf:
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+    cache: false
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+# OpenStack配置
+openstack:
+  endpoint: http://192.168.10.10:5000/v3
+  username: admin
+  password: admin
+  domain: Default
+  project: admin
+  region: RegionOne
+
+# 日志配置
+logging:
+  level:
+    com.openstack: DEBUG
+    org.openstack4j: DEBUG
+    org.openstack4j.core: DEBUG
+    org.openstack4j.api: DEBUG
+    org.apache.http: DEBUG
+    org.pacesys: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+

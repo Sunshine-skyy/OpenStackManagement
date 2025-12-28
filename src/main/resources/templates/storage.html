@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>存储管理 - OpenStack管理平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .sidebar .nav-link {
+            color: #fff;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #495057;
+        }
+        .sidebar .nav-link.active {
+            background-color: #007bff;
+        }
+        .container-list {
+            border-right: 1px solid #dee2e6;
+            min-height: 500px;
+        }
+        .object-list {
+            min-height: 500px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <nav class="col-md-2 d-none d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <h4 class="text-white text-center mb-4">
+                        <i class="fas fa-cloud"></i> OpenStack
+                    </h4>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/}">
+                                <i class="fas fa-home"></i> 概览
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/instances}">
+                                <i class="fas fa-server"></i> 实例管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" th:href="@{/storage}">
+                                <i class="fas fa-database"></i> 存储管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/logout}">
+                                <i class="fas fa-sign-out-alt"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 主内容区 -->
+            <main class="col-md-10 ms-sm-auto px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">存储管理</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <span class="text-muted me-3" th:text="'用户: ' + ${username}">用户: admin</span>
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createContainerModal">
+                            <i class="fas fa-plus"></i> 创建容器
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 错误提示 -->
+                <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                <div class="row">
+                    <!-- 容器列表 -->
+                    <div class="col-md-3 container-list">
+                        <h5>容器列表</h5>
+                        <ul class="list-group" id="containerList">
+                            <li class="list-group-item d-flex justify-content-between align-items-center container-item" 
+                                th:each="container : ${containers}"
+                                th:data-container-name="${container.name}"
+                                style="cursor: pointer;">
+                                <span th:text="${container.name}"></span>
+                                <button class="btn btn-sm btn-danger" 
+                                        th:data-container-name="${container.name}"
+                                        onclick="deleteContainer(this.getAttribute('data-container-name')); event.stopPropagation();">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 对象列表 -->
+                    <div class="col-md-9 object-list">
+                        <h5 id="currentContainer">请选择一个容器</h5>
+                        <div id="objectListArea">
+                            <p class="text-muted">请从左侧选择一个容器查看文件</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- 创建容器模态框 -->
+    <div class="modal fade" id="createContainerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">创建容器</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createContainerForm">
+                        <div class="mb-3">
+                            <label class="form-label">容器名称</label>
+                            <input type="text" class="form-control" name="containerName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="createContainer()">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传文件模态框 -->
+    <div class="modal fade" id="uploadFileModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">上传文件</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadFileForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label class="form-label">选择文件</label>
+                            <input type="file" class="form-control" name="file" required>
+                        </div>
+                        <input type="hidden" name="containerName" id="uploadContainerName">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" onclick="uploadFile()">上传</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        let currentContainer = '';
+
+        // 为容器列表项添加点击事件
+        $(document).ready(function() {
+            $('.container-item').on('click', function() {
+                const containerName = $(this).data('container-name');
+                loadObjects(containerName);
+            });
+        });
+
+        function createContainer() {
+            const containerName = $('input[name="containerName"]').val();
+            if (!containerName) {
+                alert('请输入容器名称');
+                return;
+            }
+            $.ajax({
+                url: '/storage/containers',
+                method: 'POST',
+                data: { containerName: containerName },
+                success: function(response) {
+                    if (response.success) {
+                        alert('容器创建成功');
+                        location.reload();
+                    } else {
+                        alert('创建失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function deleteContainer(containerName) {
+            if (!confirm('确定要删除容器 "' + containerName + '" 吗？')) return;
+            $.ajax({
+                url: '/storage/containers/' + containerName,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        alert('删除成功');
+                        location.reload();
+                    } else {
+                        alert('删除失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function loadObjects(containerName) {
+            currentContainer = containerName;
+            $('#currentContainer').text('容器: ' + containerName);
+            $('.container-item').removeClass('active');
+            $('[data-container-name="' + containerName + '"]').addClass('active');
+
+            $.ajax({
+                url: '/storage/containers/' + containerName + '/objects',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayObjects(response.data);
+                    } else {
+                        $('#objectListArea').html('<p class="text-danger">加载失败: ' + response.message + '</p>');
+                    }
+                }
+            });
+        }
+
+        function displayObjects(objects) {
+            let html = '<div class="mb-3">';
+            html += '<button class="btn btn-primary" onclick="showUploadModal()">';
+            html += '<i class="fas fa-upload"></i> 上传文件';
+            html += '</button>';
+            html += '</div>';
+            html += '<table class="table table-striped">';
+            html += '<thead><tr><th>文件名</th><th>大小</th><th>最后修改</th><th>操作</th></tr></thead>';
+            html += '<tbody>';
+            if (objects && objects.length > 0) {
+                objects.forEach(function(obj) {
+                    html += '<tr>';
+                    html += '<td>' + obj.name + '</td>';
+                    html += '<td>' + formatBytes(obj.bytes) + '</td>';
+                    html += '<td>' + new Date(obj.lastModified).toLocaleString() + '</td>';
+                    html += '<td>';
+                    html += '<a href="/storage/containers/' + currentContainer + '/objects/' + obj.name + '/download" class="btn btn-sm btn-success">';
+                    html += '<i class="fas fa-download"></i> 下载</a> ';
+                    html += '<button class="btn btn-sm btn-danger" onclick="deleteObject(\'' + obj.name + '\')">';
+                    html += '<i class="fas fa-trash"></i> 删除</button>';
+                    html += '</td>';
+                    html += '</tr>';
+                });
+            } else {
+                html += '<tr><td colspan="4" class="text-center text-muted">容器为空</td></tr>';
+            }
+            html += '</tbody></table>';
+            $('#objectListArea').html(html);
+        }
+
+        function showUploadModal() {
+            if (!currentContainer) {
+                alert('请先选择一个容器');
+                return;
+            }
+            $('#uploadContainerName').val(currentContainer);
+            $('#uploadFileModal').modal('show');
+        }
+
+        function uploadFile() {
+            const formData = new FormData($('#uploadFileForm')[0]);
+            $.ajax({
+                url: '/storage/containers/' + currentContainer + '/objects',
+                method: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    if (response.success) {
+                        alert('上传成功');
+                        $('#uploadFileModal').modal('hide');
+                        loadObjects(currentContainer);
+                    } else {
+                        alert('上传失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function deleteObject(objectName) {
+            if (!confirm('确定要删除文件 "' + objectName + '" 吗？')) return;
+            $.ajax({
+                url: '/storage/containers/' + currentContainer + '/objects/' + objectName,
+                method: 'DELETE',
+                success: function(response) {
+                    if (response.success) {
+                        alert('删除成功');
+                        loadObjects(currentContainer);
+                    } else {
+                        alert('删除失败: ' + response.message);
+                    }
+                }
+            });
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>
+
+

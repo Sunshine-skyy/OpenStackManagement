@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>概览 - OpenStack管理平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar {
+            min-height: 100vh;
+            background-color: #343a40;
+        }
+        .sidebar .nav-link {
+            color: #fff;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #495057;
+        }
+        .sidebar .nav-link.active {
+            background-color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- 侧边栏 -->
+            <nav class="col-md-2 d-none d-md-block sidebar">
+                <div class="position-sticky pt-3">
+                    <h4 class="text-white text-center mb-4">
+                        <i class="fas fa-cloud"></i> OpenStack
+                    </h4>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" th:href="@{/}">
+                                <i class="fas fa-home"></i> 概览
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/instances}">
+                                <i class="fas fa-server"></i> 实例管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/storage}">
+                                <i class="fas fa-database"></i> 存储管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" th:href="@{/logout}">
+                                <i class="fas fa-sign-out-alt"></i> 退出登录
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- 主内容区 -->
+            <main class="col-md-10 ms-sm-auto px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">概览</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <span class="text-muted" th:text="'用户: ' + ${username}">用户: admin</span>
+                    </div>
+                </div>
+
+                <!-- 错误提示 -->
+                <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+                <!-- 统计卡片 -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card text-white bg-primary">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-server"></i> 实例数量</h5>
+                                <h2 th:text="${instanceCount}">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-success">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-database"></i> 容器数量</h5>
+                                <h2 th:text="${containerCount}">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-white bg-info">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-image"></i> 镜像数量</h5>
+                                <h2 th:text="${imageCount}">0</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 快速操作 -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>快速操作</h5>
+                            </div>
+                            <div class="card-body">
+                                <a th:href="@{/instances}" class="btn btn-primary me-2">
+                                    <i class="fas fa-server"></i> 管理实例
+                                </a>
+                                <a th:href="@{/storage}" class="btn btn-success">
+                                    <i class="fas fa-database"></i> 管理存储
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
+
