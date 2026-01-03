@@ -44,11 +44,15 @@ public class DashboardController {
             model.addAttribute("containerCount", containerCount);
             model.addAttribute("imageCount", imageCount);
             model.addAttribute("username", userSession.getUsername());
+            
+            // 添加项目信息
+            model.addAttribute("projectName", userSession.getProject());
 
             return "dashboard";
         } catch (Exception e) {
             model.addAttribute("error", "获取数据失败: " + e.getMessage());
             model.addAttribute("username", userSession.getUsername());
+            model.addAttribute("projectName", userSession.getProject());
             return "dashboard";
         }
     }

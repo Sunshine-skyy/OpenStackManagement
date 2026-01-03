@@ -48,6 +48,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" th:href="@{/user/info}">
+                                <i class="fas fa-user-circle"></i> 用户信息
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" th:href="@{/logout}">
                                 <i class="fas fa-sign-out-alt"></i> 退出登录
                             </a>
@@ -61,7 +66,8 @@
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2">概览</h1>
                     <div class="btn-toolbar mb-2 mb-md-0">
-                        <span class="text-muted" th:text="'用户: ' + ${username}">用户: admin</span>
+                        <span class="text-muted me-3" th:text="'用户: ' + ${username}">用户: admin</span>
+                        <span class="text-muted" th:text="'项目: ' + ${projectName}">项目: demo</span>
                     </div>
                 </div>
 
@@ -107,8 +113,11 @@
                                 <a th:href="@{/instances}" class="btn btn-primary me-2">
                                     <i class="fas fa-server"></i> 管理实例
                                 </a>
-                                <a th:href="@{/storage}" class="btn btn-success">
+                                <a th:href="@{/storage}" class="btn btn-success me-2">
                                     <i class="fas fa-database"></i> 管理存储
+                                </a>
+                                <a th:href="@{/user/info}" class="btn btn-info">
+                                    <i class="fas fa-user-circle"></i> 查看用户信息
                                 </a>
                             </div>
                         </div>
