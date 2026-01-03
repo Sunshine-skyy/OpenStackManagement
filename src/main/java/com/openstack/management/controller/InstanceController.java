@@ -7,7 +7,7 @@ import com.openstack.management.util.SessionUtil;
 import org.openstack4j.model.compute.RebootType;
 import org.openstack4j.model.compute.Server;
 import org.openstack4j.model.compute.Flavor;
-import org.openstack4j.model.image.Image;
+import org.openstack4j.model.image.v2.Image;
 import org.openstack4j.model.network.Network;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;

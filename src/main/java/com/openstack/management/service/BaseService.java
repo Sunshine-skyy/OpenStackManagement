@@ -3,6 +3,7 @@ package com.openstack.management.service;
 import com.openstack.management.model.UserSession;
 import com.openstack.management.util.SessionUtil;
 import org.openstack4j.api.OSClient;
+import org.openstack4j.core.transport.Config;
 import org.openstack4j.model.common.Identifier;
 import org.openstack4j.openstack.OSFactory;
 
@@ -17,8 +18,15 @@ public abstract class BaseService {
         }
         
         try {
+            // 创建配置，禁用 SSL 验证并设置超时
+            Config config = Config.newConfig()
+                    .withSSLVerificationDisabled()
+                    .withConnectionTimeout(30000)
+                    .withReadTimeout(30000);
+            
             // 每次使用认证信息重新创建 OSClient
             return OSFactory.builderV3()
+                    .withConfig(config)
                     .endpoint(userSession.getEndpoint())
                     .credentials(userSession.getUsername(), userSession.getPassword(), 
                                Identifier.byName(userSession.getDomain()))
